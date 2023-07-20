@@ -20,9 +20,9 @@ const client = new MongoClient(uri, {
     }
 });
 
-const dbConnect = async () =>{
+const dbConnect = async () => {
     try {
-       await client.db("admin").command({ ping: 1 })
+        await client.db("admin").command({ ping: 1 })
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } catch (error) {
         console.log(error.message)
@@ -31,16 +31,72 @@ const dbConnect = async () =>{
 dbConnect()
 
 const allPapersCollection = client.db('MathPhysicsNexus').collection('AllPapers')
+const allUsersCollection = client.db('MathPhysicsNexus').collection('Users')
+
+// papers api
+
+app.post('/all-papers', async (req, res) => {
+    const paper = req.body;
+    const result = await allPapersCollection.insertOne(paper)
+    res.send(result)
+})
 
 app.get('/all-papers', async (req, res) => {
-    const result = await allPapersCollection.find().toArray()
+    const subject = req.query.subject;
+    const email = req.query.email;
+    if (email) {
+        const query = { email: email }
+        const result = await allPapersCollection.find(query).sort({ date: -1 }).toArray();
+        res.send(result);
+    } else if (subject === 'physics') {
+        const query = { examName: subject }
+        const result = await allPapersCollection.find(query).sort({ date: -1 }).toArray();
+        res.send(result);
+    } else if (subject === 'math') {
+        const query = { examName: subject }
+        const result = await allPapersCollection.find(query).sort({ date: -1 }).toArray();
+        res.send(result);
+    } else {
+        const result = await allPapersCollection.find().sort({ date: -1 }).toArray();
+        res.send(result);
+    }
+});
+
+app.get('/all-papers/:email', async (req, res) => {
+    const email = req.params.email;
+    // console.log(email);
+    const query = { email: email }
+    const result = await allPapersCollection.find(query).toArray();
     res.send(result);
 })
 
-app.get('/', (req, res) =>{
+// user api
+
+app.post('/all-users', async (req, res) => {
+    const user = req.body;
+    const query = { email: user?.email }
+    const existingUser = await allUsersCollection.findOne(query);
+    if (existingUser) {
+        return res.send({})
+    }
+    const result = await allUsersCollection.insertOne(user)
+    res.send(result)
+})
+app.get('/current-user/:email', async (req, res) => {
+    const userEmail = req.params.email;
+    const query = { email: userEmail }
+    const currentUser = await allUsersCollection.findOne(query)
+    res.send(currentUser)
+})
+app.get('/all-users', async (req, res) => {
+    const result = await allUsersCollection.find().toArray()
+    res.send(result);
+})
+
+app.get('/', (req, res) => {
     res.send('Math Physics Nexus')
 })
 
-app.listen(port,(req, res)=>{
+app.listen(port, (req, res) => {
 
 })
